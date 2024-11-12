@@ -32,7 +32,7 @@ const UserMenu = () => {
       <div className="text-right">
         <p className="text-xs text-gray-500">Signed in as</p>
         <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
-          {session.user?.email}
+          {session.user?.name}
         </p>
       </div>
       <button

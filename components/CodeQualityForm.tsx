@@ -3,6 +3,8 @@
 
 import { useState } from "react";
 import FilePicker from "./FilePicker";
+import ReactMarkdown from "react-markdown";
+// import AnalyzeCodeWithLLM from "./AnalyzeCodeWithLLM"; // Ensure correct import path
 
 interface AnalyzeResponse {
   score: number;
@@ -10,39 +12,96 @@ interface AnalyzeResponse {
 }
 
 const CodeQualityForm = () => {
-  // New state variables
-  const [repoInput, setRepoInput] = useState(""); // Tracks input field
-  const [activeRepo, setActiveRepo] = useState(""); // Tracks confirmed repo
-  const [filePath, setFilePath] = useState("");
-  const [sha, setSha] = useState("");
+  // State variables for repository and SHA
+  const [repoInput, setRepoInput] = useState(""); // Tracks input field for repo
+  const [shaInput, setShaInput] = useState(""); // Tracks input field for SHA
+
+  // State variables for active repo and SHA from FilePicker
+  const [activeRepo, setActiveRepo] = useState(""); // Confirmed repo
+  const [activeSha, setActiveSha] = useState(""); // Confirmed SHA
+
+  // State variables for analysis result, loading, and error
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Handles file selection from FilePicker
+  /**
+   * Handles file selection from FilePicker.
+   * Sets the active SHA based on the selected file.
+   * @param selectedFilePath - Path of the selected file
+   * @param selectedSha - SHA of the selected file
+   */
   const handleFileSelect = (selectedFilePath: string, selectedSha: string) => {
-    setFilePath(selectedFilePath);
-    setSha(selectedSha);
+    setActiveSha(selectedSha);
+    setShaInput(selectedSha); // Update SHA input field
+    setError("");
   };
 
-  // Handles the "Load Repository" button click
+  /**
+   * Parses the repository input to extract owner and repo.
+   * Supports both full URLs and owner/repo formats.
+   * @param input - The repository input string.
+   * @returns The extracted owner/repo string or null if invalid.
+   */
+  const parseRepoInput = (input: string): string | null => {
+    try {
+      // Check if input is a URL
+      const url = new URL(input);
+      if (url.hostname !== "github.com") return null;
+      const paths = url.pathname.split("/").filter(Boolean);
+      if (paths.length < 2) return null;
+      return `${paths[0]}/${paths[1]}`;
+    } catch {
+      // If not a URL, assume it's in owner/repo format
+      const parts = input.split("/");
+      if (parts.length !== 2) return null;
+      const [owner, repo] = parts;
+      if (!owner || !repo) return null;
+      return `${owner}/${repo}`;
+    }
+  };
+
+  /**
+   * Handles the "Load Repository" button click.
+   * Sets the active repository based on user input.
+   * @param e - Form event
+   */
   const handleLoadRepo = (e: React.FormEvent) => {
     e.preventDefault(); // Prevent form submission
     if (!repoInput.trim()) {
       setError("Please enter a GitHub repository.");
       return;
     }
-    setActiveRepo(repoInput.trim());
-    setError("");
-  };
-
-  // Handles form submission for analysis
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!sha) {
-      setError("Please select a file to analyze.");
+    const parsedRepo = parseRepoInput(repoInput.trim());
+    if (!parsedRepo) {
+      setError(
+        "Invalid repository format. Please enter a valid GitHub repository URL or 'owner/repo'."
+      );
       return;
     }
+    setActiveRepo(parsedRepo);
+    setError("");
+    setResult(null); // Clear previous results
+    setShaInput(""); // Reset SHA input
+    setActiveSha("");
+  };
+
+  /**
+   * Handles form submission for analysis.
+   * Sends the repository and SHA to the API for analysis.
+   * @param e - Form event
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeRepo.trim()) {
+      setError("Please load a repository.");
+      return;
+    }
+    if (!activeSha.trim()) {
+      setError("Please select a file or enter a SHA to analyze.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setResult(null);
@@ -51,7 +110,7 @@ const CodeQualityForm = () => {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo: activeRepo, sha }),
+        body: JSON.stringify({ repo: activeRepo, sha: activeSha }),
       });
 
       const data = await response.json();
@@ -68,20 +127,29 @@ const CodeQualityForm = () => {
     }
   };
 
+  /**
+   * Handles manual input of SHA.
+   * @param e - Input change event
+   */
+  const handleManualShaInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setShaInput(e.target.value);
+    setActiveSha(e.target.value);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Repository Input Section */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          GitHub Repo (owner/repo)
+          GitHub Repo (URL or owner/repo)
         </label>
-        <div className="flex space-x-2 mt-1">
+        <div className="flex space-x-2 mt-1 text-gray-700">
           <input
             type="text"
-            placeholder="e.g., facebook/react"
+            placeholder="e.g., https://github.com/facebook/react or facebook/react"
             value={repoInput}
             onChange={(e) => setRepoInput(e.target.value)}
-            required
+            required={!activeRepo}
             className="flex-grow border border-gray-300 rounded-md p-2 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
           <button
@@ -93,6 +161,22 @@ const CodeQualityForm = () => {
         </div>
       </div>
 
+      {/* SHA Input Section */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          SHA of the File
+        </label>
+        <div className="flex space-x-2 mt-1 text-gray-700">
+          <input
+            type="text"
+            placeholder="Enter SHA or select a file"
+            value={shaInput}
+            onChange={handleManualShaInput}
+            className="flex-grow border border-gray-300 rounded-md p-2 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
       {/* FilePicker Section - Only Rendered When activeRepo is Set */}
       {activeRepo && (
         <FilePicker repo={activeRepo} onFileSelect={handleFileSelect} />
@@ -101,9 +185,10 @@ const CodeQualityForm = () => {
       {/* Analyze Button */}
       <button
         type="submit"
-        disabled={loading || !sha}
-        className={`w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition ${
-          (loading || !sha) && "opacity-50 cursor-not-allowed"
+        disabled={loading || !activeSha || !activeRepo}
+        className={`w-full px-4 py-2 bg-blue-600 text-black rounded-md hover:bg-blue-700 transition ${
+          (loading || !activeSha || !activeRepo) &&
+          "opacity-50 cursor-not-allowed"
         }`}
       >
         {loading ? "Analyzing..." : "Analyze"}
@@ -115,10 +200,12 @@ const CodeQualityForm = () => {
       {/* Analysis Result */}
       {result && (
         <div className="mt-6 p-4 border border-gray-200 rounded-md bg-white shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
             Quality Score: {result.score}
           </h2>
-          <p className="mt-2 text-gray-700">Reasoning: {result.reasoning}</p>
+          <ReactMarkdown className="prose prose-sm text-gray-700">
+            {result.reasoning}
+          </ReactMarkdown>
         </div>
       )}
     </form>
