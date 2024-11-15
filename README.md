@@ -7,7 +7,6 @@
 
 - [Introduction](#introduction)
 - [Features](#features)
-- [Demo](#demo)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -15,6 +14,7 @@
   - [Running the Application](#running-the-application)
 - [Technologies Used](#technologies-used)
 - [Project Structure](#project-structure)
+- [Improvements](#improvements)
 
 ## Introduction
 
@@ -26,12 +26,6 @@
 - **Code Analysis:** Utilizes OpenAI's GPT-4o-mini model to assess code quality.
 - **Session Management:** Implements authentication using NextAuth for secure access.
 - **History Tracking:** Stores and displays a history of analyzed code snippets using `localStorage`.
-
-## Demo
-
-![Application Screenshot](./screenshots/demo.png)
-
-_Screenshot showcasing the Code Quality Analyzer interface._
 
 ## Getting Started
 
@@ -50,8 +44,8 @@ Ensure you have the following installed on your machine:
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/Jaurasma/strive_tech_challenge.git
-   cd code-quality-analyzer
+   git clone https://github.com/Jaurasma/strive_tech_challenge.git code_quality_analyzer
+   cd code_quality_analyzer
    ```
 
 2. **Install Dependencies**
@@ -146,6 +140,7 @@ yarn start
 - **[OpenAI API](https://openai.com/api/):** AI models for generating responses.
 - **[ESLint](https://eslint.org/):** Linting utility for JavaScript and TypeScript.
 - **[Prettier](https://prettier.io/):** Code formatter.
+- **[Docker](https://www.docker.com/):** Containerization platform for consistent development and deployment environments.
 
 ## Project Structure
 
@@ -194,6 +189,32 @@ code-quality-analyzer/
 - **`utils/`:** Houses utility functions and their tests.
 - **`types/`:** Defines TypeScript interfaces and types.
 - **`styles/`:** Contains global and component-specific CSS files.
-- **`Dockerfile`:** Configuration for Dockerizing the application.
 - **`.eslintrc.js`:** ESLint configuration.
 - **`README.md`:** Project documentation.
+
+## Improvements
+
+While **Code Quality Analyzer** is functional and robust, there are several areas planned for future enhancement:
+
+- **Testing:**
+  - **Unit Testing:** Implement comprehensive unit tests using [Jest](https://jestjs.io/) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to ensure component reliability and facilitate maintainability.
+  - **Integration Testing:** Develop integration tests to validate the interaction between different parts of the application, ensuring seamless data flow and functionality.
+
+- **Docker Enhancements:**
+  - **Optimized Dockerfile:** Refine the existing `Dockerfile` to leverage multi-stage builds, reducing the final image size and improving build times.
+  - **Docker Compose:** Introduce a `docker-compose.yml` file to manage multi-container setups, facilitating easier local development and testing environments.
+
+- **Enhanced Error Handling and Logging:**
+  - **User Feedback:** Improve error messages and user notifications to provide clearer guidance during failures.
+  - **Logging:** Implement advanced logging mechanisms using tools like [Winston](https://github.com/winstonjs/winston) or [LogRocket](https://logrocket.com/) for better monitoring and debugging.
+
+- **User Interface Enhancements:**
+  - **Responsive Design:** Further refine the UI to ensure optimal display across a wider range of devices and screen sizes.
+  - **Accessibility Improvements:** Ensure the application meets accessibility standards (e.g., WCAG) to provide an inclusive experience for all users.
+
+- **Security Enhancements:**
+  - **Input Validation:** Strengthen input validation to prevent potential security vulnerabilities.
+  - **Dependency Audits:** Regularly audit and update dependencies to mitigate security risks associated with outdated packages.
+
+- **Additional Features:**
+  - **Export Analysis Results:** Allow users to export their analysis reports in formats like PDF or Markdown.
