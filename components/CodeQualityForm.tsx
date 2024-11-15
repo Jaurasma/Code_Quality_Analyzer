@@ -34,7 +34,7 @@ const CodeQualityForm = () => {
     return (
       <div className="flex flex-col items-center justify-center bg-gray-50 px-4">
         <div className="bg-white shadow-lg rounded-lg p-8 max-w-md w-full transform transition duration-300 hover:scale-105">
-          {/* Github icon svg */}
+          {/* GitHub Icon */}
           <div className="flex justify-center mb-6">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -49,36 +49,51 @@ const CodeQualityForm = () => {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-extrabold text-gray-800 text-center mb-4">
-            Code Quality Analyzer
+          <h1 className="text-3xl font-extrabold text-gray-800 text-center mb-4">
+            Welcome to Code Quality Analyzer 🚀
           </h1>
 
           {/* Description */}
           <p className="text-gray-700 text-center mb-6">
-            Welcome to the <strong>Code Quality Analyzer</strong>! This tool
-            helps you assess and improve the quality of your code by providing
-            detailed insights and actionable feedback.
+            Unlock the full potential of your code! Our{" "}
+            <strong>Code Quality Analyzer</strong> helps you assess and elevate
+            your code's quality with insightful analysis and actionable
+            feedback.
           </p>
 
-          {/* Features List */}
-          <ul className="list-disc list-inside text-gray-700 text-left mb-6">
-            <li>
-              🔍 Comprehensive Analysis: Evaluates code for best practices,
-              efficiency, and maintainability.
+          {/* Features List with Improved Text */}
+          <ul className="list-disc list-inside text-gray-700 text-left mb-6 space-y-2">
+            {/* Step 1: Sign in */}
+            <li className="flex items-start">
+              <span className="mr-2">1️⃣</span>
+              <span>
+                <strong>Sign in with GitHub</strong> to effortlessly explore any
+                public repositories or dive deep into your private ones. 🔍
+              </span>
             </li>
-            <li>
-              📈 Performance Metrics: Provides a quality score out of 100 to
-              quantify your code&apos;s standards.
+            {/* Step 2: Select or input repository and SHA */}
+            <li className="flex items-start">
+              <span className="mr-2">2️⃣</span>
+              <span>
+                <strong>Select a Repository</strong> and choose the file you
+                want to analyze, or enter a specific <code>SHA</code> to analyze
+                a particular version of your code. 📂
+              </span>
             </li>
-            <li>
-              📝 Actionable Feedback: Offers suggestions to enhance your coding
-              practices.
+            {/* Step 3: Receive feedback */}
+            <li className="flex items-start">
+              <span className="mr-2">3️⃣</span>
+              <span>
+                <strong>Receive Detailed Feedback</strong> on your code's
+                quality, including performance metrics and improvement
+                suggestions. ✅
+              </span>
             </li>
           </ul>
 
           {/* Additional Information */}
           <p className="text-gray-500 text-center text-sm mt-4">
-            Sign in to Github from the top right corner.
+            Get started by signing in to GitHub from the top right corner.
           </p>
         </div>
       </div>
@@ -176,6 +191,13 @@ const CodeQualityForm = () => {
     saveHistory([]);
   };
 
+  const getScoreColor = (score: number): string => {
+    if (score >= 80) return "text-green-500";
+    if (score >= 60) return "text-yellow-500";
+    if (score >= 40) return "text-orange-500";
+    return "text-red-500";
+  };
+
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -235,9 +257,15 @@ const CodeQualityForm = () => {
 
         {result && (
           <div className="mt-6 p-4 border border-gray-200 rounded-md bg-white shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">
+            {/* Quality Score with Color Grading */}
+            <h2
+              className={`text-lg font-semibold mb-2 ${getScoreColor(
+                result.score
+              )}`}
+            >
               Quality Score: {result.score}
             </h2>
+            {/* Render reasoning as Markdown */}
             <ReactMarkdown className="prose prose-sm text-gray-700">
               {result.reasoning}
             </ReactMarkdown>

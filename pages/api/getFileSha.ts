@@ -1,4 +1,3 @@
-// pages/api/getFileSha.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import { getServerSession } from "next-auth/next";
@@ -22,7 +21,6 @@ export default async function handler(
   }
 
   const session = await getServerSession(req, res, authOptions);
-  console.log("Session:", session, session?.accessToken);
 
   if (!session || !session.accessToken) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -58,11 +56,28 @@ export default async function handler(
     const { sha } = response.data;
 
     res.status(200).json({ sha });
-  } catch (error: any) {
-    if (error.response && error.response.status === 404) {
-      res.status(404).json({ error: "File not found in the repository" });
-    } else {
-      res.status(500).json({ error: error.message || "Internal Server Error" });
+  } catch (error: unknown) {
+    console.error("Error fetching file SHA:", error);
+
+    // Type guard for AxiosError
+    if (axios.isAxiosError(error)) {
+      if (error.response && error.response.status === 404) {
+        return res
+          .status(404)
+          .json({ error: "File not found in the repository" });
+      }
+      return res.status(500).json({
+        error:
+          error.response?.data?.error || "Error fetching file data from GitHub",
+      });
     }
+
+    // Generic Error
+    if (error instanceof Error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Unknown error fallback
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }

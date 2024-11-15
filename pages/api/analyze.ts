@@ -25,7 +25,6 @@ export default async function handler(
   try {
     // Retrieve session using getServerSession
     const session = await getServerSession(req, res, authOptions);
-    console.log("Session:", session);
 
     if (!session || !session.accessToken) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -70,35 +69,43 @@ export default async function handler(
 
     // Respond with the analysis
     return res.status(200).json(llmResponse);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Route Error:", error);
 
-    // Determine the error type and respond accordingly
+    // Check if the error is an AxiosError
     if (axios.isAxiosError(error)) {
       if (error.response) {
-        // Received a response from the server with a status code outside 2xx
+        // Server responded with a status other than 2xx
         const status = error.response.status;
         const message =
           error.response.data?.error?.message ||
           `GitHub API responded with status ${status}`;
         return res.status(status).json({ error: message });
       } else if (error.request) {
-        // No response received from the server
+        // Request was made but no response received
         return res.status(503).json({ error: "No response from GitHub API" });
       } else {
-        // Error setting up the request
-        return res.status(500).json({ error: error.message });
+        // Something happened in setting up the request
+        const message = error.message || "Error setting up the request";
+        return res.status(500).json({ error: message });
       }
-    } else if (error instanceof SyntaxError) {
-      // JSON parsing error
+    }
+
+    // Check if the error is a SyntaxError
+    if (error instanceof SyntaxError) {
       return res
         .status(500)
         .json({ error: "Failed to parse JSON response from LLM." });
-    } else {
-      // Generic server error
+    }
+
+    // Check if the error is an instance of Error
+    if (error instanceof Error) {
       return res
         .status(500)
         .json({ error: error.message || "Internal Server Error" });
     }
+
+    // Fallback for unknown error types
+    return res.status(500).json({ error: "An unknown error occurred." });
   }
 }

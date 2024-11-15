@@ -5,7 +5,6 @@ import SignOutButton from "./SignOutButton";
 
 const AuthButtons = () => {
   const { data: session, status } = useSession();
-  console.log("session & status ", session, status);
   if (status === "loading") {
     return <p>Loading...</p>;
   }
