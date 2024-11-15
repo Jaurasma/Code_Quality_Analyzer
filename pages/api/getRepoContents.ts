@@ -82,7 +82,7 @@ export default async function handler(
       };
       res.status(200).json([file]);
     }
-  } catch (error) {
+  } catch (error: any) {
     if (error.response && error.response.status === 404) {
       res.status(404).json({ error: "Path not found in the repository" });
     } else {

@@ -1,6 +1,6 @@
 // localStorageUtils.ts
 import { HistoryItem } from "../types/types";
-// Key used in localStorage
+
 const HISTORY_KEY = "codeQualityHistory";
 
 // Load history from local storage

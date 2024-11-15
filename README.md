@@ -23,11 +23,9 @@
 ## Features
 
 - **GitHub Integration:** Fetches file contents from specified repositories and commit SHAs.
-- **Code Analysis:** Utilizes OpenAI's GPT-3.5-Turbo model to assess code quality.
+- **Code Analysis:** Utilizes OpenAI's GPT-4o-mini model to assess code quality.
 - **Session Management:** Implements authentication using NextAuth for secure access.
 - **History Tracking:** Stores and displays a history of analyzed code snippets using `localStorage`.
-- **User-Friendly Interface:** Provides an intuitive UI for inputting repository details and viewing analysis results.
-- **Retry Mechanism:** Implements a retry strategy for handling API response errors gracefully.
 
 ## Demo
 

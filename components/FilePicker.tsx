@@ -147,14 +147,22 @@ const FilePicker: React.FC<FilePickerProps> = ({ repo, onFileSelect }) => {
             <li key={item.sha} className="mb-1 text-gray-700">
               {item.type === "dir" ? (
                 <button
-                  onClick={() => navigateToDirectory(item.path)}
+                  onClick={() => {
+                    console.log(`Navigating to directory: ${item.path}`);
+                    navigateToDirectory(item.path);
+                  }}
                   className="w-full text-left px-3 py-2 bg-white rounded-md hover:bg-blue-50 transition"
                 >
                   📁 {item.name}
                 </button>
               ) : (
                 <button
-                  onClick={() => onFileSelect(item.path, item.sha)}
+                  onClick={() => {
+                    console.log(
+                      `Selecting file: ${item.path} with SHA: ${item.sha}`
+                    );
+                    onFileSelect(item.path, item.sha);
+                  }}
                   className="w-full text-left px-3 py-2 bg-white rounded-md hover:bg-blue-50 transition"
                 >
                   📄 {item.name}

@@ -1,7 +1,11 @@
 // components/UserMenu.tsx
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
+import Image from "next/image";
+import SignInButton from "./SignInButton";
+import SignOutButton from "./SignOutButton";
+import { useSession } from "next-auth/react";
+
 const UserMenu = () => {
   const { data: session, status } = useSession();
 
@@ -10,23 +14,18 @@ const UserMenu = () => {
   }
 
   if (!session) {
-    return (
-      <button
-        onClick={() => signIn("github")}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm"
-      >
-        Sign in with GitHub
-      </button>
-    );
+    return <SignInButton />;
   }
 
   return (
     <div className="flex items-center space-x-3">
       {session.user?.image && (
-        <img
+        <Image
           src={session.user.image}
-          alt="User Avatar"
-          className="w-8 h-8 rounded-full"
+          alt={`${session.user.name}'s Avatar`}
+          width={32}
+          height={32}
+          className="rounded-full w-8 h-8 sm:w-10 sm:h-10"
         />
       )}
       <div className="text-right">
@@ -35,12 +34,7 @@ const UserMenu = () => {
           {session.user?.name}
         </p>
       </div>
-      <button
-        onClick={() => signOut()}
-        className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-xs"
-      >
-        Sign Out
-      </button>
+      <SignOutButton />
     </div>
   );
 };
