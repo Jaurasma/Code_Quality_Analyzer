@@ -57,7 +57,7 @@ const CodeQualityForm = () => {
           <p className="text-gray-700 text-center mb-6">
             Unlock the full potential of your code! Our{" "}
             <strong>Code Quality Analyzer</strong> helps you assess and elevate
-            your code's quality with insightful analysis and actionable
+            your code&apos;s quality with insightful analysis and actionable
             feedback.
           </p>
 
@@ -84,7 +84,7 @@ const CodeQualityForm = () => {
             <li className="flex items-start">
               <span className="mr-2">3️⃣</span>
               <span>
-                <strong>Receive Detailed Feedback</strong> on your code's
+                <strong>Receive Detailed Feedback</strong> on your code&apos;s
                 quality, including performance metrics and improvement
                 suggestions. ✅
               </span>
