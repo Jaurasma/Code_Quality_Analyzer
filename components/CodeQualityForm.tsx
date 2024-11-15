@@ -1,12 +1,15 @@
 // components/CodeQualityForm.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
-import FilePicker from "./FilePicker"; // Ensure this component exists
+import FilePicker from "./FilePicker"; // Ensure this component accepts a 'disabled' prop
 import ReactMarkdown from "react-markdown";
 import { loadHistory, saveHistory } from "@/utils/localStorageUtils";
 import { AnalyzeResponse, HistoryItem } from "@/types/types";
 import { useSession } from "next-auth/react";
+import ClipLoader from "react-spinners/ClipLoader"; // Install react-spinners for loader
+import debounce from "lodash.debounce";
 
 const CodeQualityForm = () => {
   const { data: session, status } = useSession();
@@ -27,9 +30,141 @@ const CodeQualityForm = () => {
     }
   }, [session]);
 
+  // Function to add a new analysis to history (Prepending)
+  const addToHistory = (item: HistoryItem) => {
+    setHistory((prevHistory) => {
+      const updatedHistory = [item, ...prevHistory];
+      saveHistory(updatedHistory);
+      return updatedHistory;
+    });
+  };
+
+  // Handler when a file is selected from the FilePicker component
+  const handleFileSelect = (selectedFilePath: string, selectedSha: string) => {
+    setActiveSha(selectedSha);
+    setShaInput(selectedSha);
+    setError("");
+  };
+
+  // Function to parse repository input (URL or owner/repo)
+  const parseRepoInput = (input: string): string | null => {
+    try {
+      const url = new URL(input);
+      if (url.hostname !== "github.com") return null;
+      const paths = url.pathname.split("/").filter(Boolean);
+      if (paths.length < 2) return null;
+      return `${paths[0]}/${paths[1]}`;
+    } catch {
+      const parts = input.split("/");
+      if (parts.length !== 2) return null;
+      const [owner, repo] = parts;
+      if (!owner || !repo) return null;
+      return `${owner}/${repo}`;
+    }
+  };
+
+  // Handler to load the repository based on user input
+  const handleLoadRepo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return; // Prevent loading repo during analysis
+
+    const parsedRepo = parseRepoInput(repoInput.trim());
+    if (!parsedRepo) {
+      setError(
+        "Invalid repository format. Please enter a valid GitHub repository URL or 'owner/repo'."
+      );
+      return;
+    }
+    setActiveRepo(parsedRepo); // Set the active repository
+    setError(""); // Clear any previous errors
+    setResult(null); // Reset previous analysis result
+    setShaInput(""); // Clear SHA input
+    setActiveSha(""); // Clear active SHA
+  };
+
+  // Debounced handleSubmit to prevent rapid submissions
+  // Debounced handleLoadRepo to prevent rapid clicks
+  const debouncedHandleLoadRepo = debounce(handleLoadRepo, 500, {
+    leading: true,
+    trailing: false,
+  });
+  // Handler for form submission to analyze code
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return; // Prevent multiple submissions
+    if (!activeRepo.trim()) {
+      setError("Please load a repository.");
+      return;
+    }
+    if (!activeSha.trim()) {
+      setError("Please select a file or enter a SHA to analyze.");
+      return;
+    }
+
+    setLoading(true); // Set loading state
+    setError(""); // Clear previous errors
+    setResult(null); // Reset previous result
+
+    try {
+      // Make a POST request to the analyze API
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo: activeRepo, sha: activeSha }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to analyze code");
+      }
+
+      setResult(data); // Set the analysis result
+
+      // Add the analysis to history (Prepending)
+      addToHistory({ repo: activeRepo, sha: activeSha, result: data });
+    } catch (err: any) {
+      setError(err.message || "Something went wrong."); // Set error message
+    } finally {
+      setLoading(false); // Reset loading state
+    }
+  };
+
+  const debouncedHandleSubmit = debounce(handleSubmit, 500, {
+    leading: true,
+    trailing: false,
+  });
+  // Handler for manual SHA input changes
+  const handleManualShaInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setShaInput(e.target.value);
+    setActiveSha(e.target.value);
+  };
+
+  // Function to clear the analysis history
+  const clearHistory = () => {
+    if (loading) return; // Prevent clearing history during analysis
+    setHistory([]);
+    saveHistory([]);
+  };
+
+  // Function to determine the Tailwind CSS color class based on the score
+  const getScoreColor = (score: number): string => {
+    if (score >= 80) return "text-green-500";
+    if (score >= 60) return "text-yellow-500";
+    if (score >= 40) return "text-orange-500";
+    return "text-red-500";
+  };
+
+  // If session is loading
   if (status === "loading") {
-    return <p className="text-center mt-12">Loading...</p>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <ClipLoader color="#3b82f6" size={50} />
+      </div>
+    );
   }
+
+  // If not authenticated
   if (!session) {
     return (
       <div className="flex flex-col items-center justify-center bg-gray-50 px-4">
@@ -99,149 +234,84 @@ const CodeQualityForm = () => {
       </div>
     );
   }
-  const addToHistory = (item: HistoryItem) => {
-    setHistory((prevHistory) => [...prevHistory, item]);
-    saveHistory([...history, item]);
-  };
-
-  const handleFileSelect = (selectedFilePath: string, selectedSha: string) => {
-    setActiveSha(selectedSha);
-    setShaInput(selectedSha);
-    setError("");
-  };
-
-  const parseRepoInput = (input: string): string | null => {
-    try {
-      const url = new URL(input);
-      if (url.hostname !== "github.com") return null;
-      const paths = url.pathname.split("/").filter(Boolean);
-      if (paths.length < 2) return null;
-      return `${paths[0]}/${paths[1]}`;
-    } catch {
-      const parts = input.split("/");
-      if (parts.length !== 2) return null;
-      const [owner, repo] = parts;
-      if (!owner || !repo) return null;
-      return `${owner}/${repo}`;
-    }
-  };
-
-  const handleLoadRepo = (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsedRepo = parseRepoInput(repoInput.trim());
-    if (!parsedRepo) {
-      setError(
-        "Invalid repository format. Please enter a valid GitHub repository URL or 'owner/repo'."
-      );
-      return;
-    }
-    setActiveRepo(parsedRepo);
-    setError("");
-    setResult(null);
-    setShaInput("");
-    setActiveSha("");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeRepo.trim()) {
-      setError("Please load a repository.");
-      return;
-    }
-    if (!activeSha.trim()) {
-      setError("Please select a file or enter a SHA to analyze.");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    setResult(null);
-
-    try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo: activeRepo, sha: activeSha }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to analyze code");
-      }
-
-      setResult(data);
-
-      // Add to history
-      addToHistory({ repo: activeRepo, sha: activeSha, result: data });
-    } catch (err: any) {
-      setError(err.message || "Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleManualShaInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setShaInput(e.target.value);
-    setActiveSha(e.target.value);
-  };
-
-  const clearHistory = () => {
-    setHistory([]);
-    saveHistory([]);
-  };
-
-  const getScoreColor = (score: number): string => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    if (score >= 40) return "text-orange-500";
-    return "text-red-500";
-  };
-
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Loading Overlay */}
+      {loading && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+          aria-live="assertive"
+          aria-busy="true"
+        >
+          <ClipLoader color="#ffffff" size={60} />
+          <span className="sr-only">Analyzing code, please wait...</span>
+        </div>
+      )}
+
+      <form onSubmit={debouncedHandleSubmit} className="space-y-6">
+        {/* Repository Input Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="repoInput"
+            className="block text-sm font-medium text-gray-700"
+          >
             GitHub Repo (URL or owner/repo)
           </label>
           <div className="flex space-x-2 mt-1 text-gray-700">
             <input
+              id="repoInput"
               type="text"
               placeholder="e.g., https://github.com/facebook/react or facebook/react"
               value={repoInput}
               onChange={(e) => setRepoInput(e.target.value)}
-              required={!activeRepo}
+              required={!activeRepo} // Make input required if no active repo is set
+              disabled={loading} // Disable input during loading
               className="flex-grow border border-gray-300 rounded-md p-2 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
+            {/* Button to load the repository */}
             <button
-              onClick={handleLoadRepo}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-sm"
+              onClick={debouncedHandleLoadRepo}
+              disabled={loading} // Disable button during loading
+              className={`px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-sm ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
               Load Repo
             </button>
           </div>
         </div>
 
+        {/* SHA Input Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="shaInput"
+            className="block text-sm font-medium text-gray-700"
+          >
             SHA of the File
           </label>
           <div className="flex space-x-2 mt-1 text-gray-700">
             <input
+              id="shaInput"
               type="text"
               placeholder="Enter SHA or select a file"
               value={shaInput}
               onChange={handleManualShaInput}
+              disabled={loading} // Disable input during loading
               className="flex-grow border border-gray-300 rounded-md p-2 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
 
+        {/* FilePicker Component to select files from the repository */}
         {activeRepo && (
-          <FilePicker repo={activeRepo} onFileSelect={handleFileSelect} />
+          <FilePicker
+            repo={activeRepo}
+            onFileSelect={handleFileSelect}
+            disabled={loading}
+          />
         )}
 
+        {/* Submit Button to analyze the selected file */}
         <button
           type="submit"
           disabled={loading || !activeSha || !activeRepo}
@@ -250,20 +320,25 @@ const CodeQualityForm = () => {
             "opacity-50 cursor-not-allowed"
           }`}
         >
-          {loading ? "Analyzing..." : "Analyze"}
+          {loading ? "Analyzing..." : "Analyze"} {/* Show loading state */}
         </button>
 
+        {/* Display error message if any */}
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
+        {/* Display analysis result with Color Grading */}
         {result && (
           <div className="mt-6 p-4 border border-gray-200 rounded-md bg-white shadow-sm">
-            {/* Quality Score with Color Grading */}
-            <h2
-              className={`text-lg font-semibold mb-2 ${getScoreColor(
-                result.score
-              )}`}
-            >
-              Quality Score: {result.score}
+            {/* Quality Score with Badge */}
+            <h2 className="flex items-center text-lg font-semibold mb-2 text-gray-900">
+              Quality Score:
+              <span
+                className={` px-2 py-1 rounded-full text-xl font-bold ${getScoreColor(
+                  result.score
+                )} bg-opacity-20`}
+              >
+                {result.score}
+              </span>
             </h2>
             {/* Render reasoning as Markdown */}
             <ReactMarkdown className="prose prose-sm text-gray-700">
@@ -280,31 +355,37 @@ const CodeQualityForm = () => {
             <h2 className="text-lg font-semibold text-gray-800">History</h2>
             <button
               onClick={clearHistory}
-              className="px-2 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-sm"
+              disabled={loading} // Disable button during loading
+              className={`px-2 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition text-sm ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
               Clear History
             </button>
           </div>
           <ul className="mt-4 space-y-4">
-            {history.map((item, index) => (
-              <li
-                key={index}
-                className="p-4 border border-gray-200 rounded-md bg-gray-50 shadow-sm"
-              >
-                <p className="text-sm text-gray-700">
-                  <strong>Repo:</strong> {item.repo}
-                </p>
-                <p className="text-sm text-gray-700">
-                  <strong>SHA:</strong> {item.sha}
-                </p>
-                <p className="text-sm text-gray-700">
-                  <strong>Score:</strong> {item.result.score}
-                </p>
-                <ReactMarkdown className="prose prose-sm text-gray-700 mt-2">
-                  {item.result.reasoning}
-                </ReactMarkdown>
-              </li>
-            ))}
+            {history
+              .slice() // Create a shallow copy to avoid mutating the original array
+              .reverse() // Reverse the copy to show latest first
+              .map((item, index) => (
+                <li
+                  key={`${item.repo}-${item.sha}-${index}`} // Use a unique key
+                  className="p-4 border border-gray-200 rounded-md bg-gray-50 shadow-sm"
+                >
+                  <p className="text-sm text-gray-700">
+                    <strong>Repo:</strong> {item.repo}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>SHA:</strong> {item.sha}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Score:</strong> {item.result.score}
+                  </p>
+                  <ReactMarkdown className="prose prose-sm text-gray-700 mt-2">
+                    {item.result.reasoning}
+                  </ReactMarkdown>
+                </li>
+              ))}
           </ul>
         </div>
       )}

@@ -1,4 +1,5 @@
 // components/FilePicker.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,6 +7,7 @@ import { useEffect, useState } from "react";
 interface FilePickerProps {
   repo: string;
   onFileSelect: (filePath: string, sha: string) => void;
+  disabled?: boolean; // Added disabled prop
 }
 
 interface RepoContent {
@@ -15,11 +17,20 @@ interface RepoContent {
   type: "file" | "dir";
 }
 
-const FilePicker: React.FC<FilePickerProps> = ({ repo, onFileSelect }) => {
+const FilePicker: React.FC<FilePickerProps> = ({
+  repo,
+  onFileSelect,
+  disabled = false,
+}) => {
   const [contents, setContents] = useState<RepoContent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [currentPath, setCurrentPath] = useState<string>(""); // Tracks the current directory path
+
+  // Reset currentPath when repo changes
+  useEffect(() => {
+    setCurrentPath("");
+  }, [repo]);
 
   useEffect(() => {
     const fetchRepoContents = async () => {
@@ -82,8 +93,10 @@ const FilePicker: React.FC<FilePickerProps> = ({ repo, onFileSelect }) => {
         <ol className="list-reset flex text-gray-700">
           <li>
             <button
+              type="button" // Explicitly set type
               onClick={() => setCurrentPath("")}
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-600 hover:text-blue-800 focus:outline-none"
+              disabled={disabled} // Disable breadcrumb navigation during loading
             >
               Root
             </button>
@@ -95,11 +108,13 @@ const FilePicker: React.FC<FilePickerProps> = ({ repo, onFileSelect }) => {
                 <span className="text-gray-700">{segment}</span>
               ) : (
                 <button
+                  type="button" // Explicitly set type
                   onClick={() => {
                     const newPath = pathSegments.slice(0, index + 1).join("/");
                     setCurrentPath(newPath);
                   }}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-blue-600 hover:text-blue-800 focus:outline-none"
+                  disabled={disabled} // Disable breadcrumb navigation during loading
                 >
                   {segment}
                 </button>
@@ -131,8 +146,12 @@ const FilePicker: React.FC<FilePickerProps> = ({ repo, onFileSelect }) => {
       {/* Directory Navigation Buttons */}
       {currentPath && (
         <button
+          type="button" // Explicitly set type
           onClick={navigateUp}
-          className="mb-2 px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition text-sm"
+          disabled={disabled} // Disable navigation during loading
+          className={`mb-2 px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition text-sm ${
+            disabled ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           ↑ Up
         </button>
@@ -147,23 +166,27 @@ const FilePicker: React.FC<FilePickerProps> = ({ repo, onFileSelect }) => {
             <li key={item.sha} className="mb-1 text-gray-700">
               {item.type === "dir" ? (
                 <button
+                  type="button" // Explicitly set type
                   onClick={() => {
-                    console.log(`Navigating to directory: ${item.path}`);
                     navigateToDirectory(item.path);
                   }}
-                  className="w-full text-left px-3 py-2 bg-white rounded-md hover:bg-blue-50 transition"
+                  disabled={disabled} // Disable directory navigation during loading
+                  className={`w-full text-left px-3 py-2 bg-white rounded-md hover:bg-blue-50 transition ${
+                    disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
                   📁 {item.name}
                 </button>
               ) : (
                 <button
+                  type="button" // Explicitly set type
                   onClick={() => {
-                    console.log(
-                      `Selecting file: ${item.path} with SHA: ${item.sha}`
-                    );
                     onFileSelect(item.path, item.sha);
                   }}
-                  className="w-full text-left px-3 py-2 bg-white rounded-md hover:bg-blue-50 transition"
+                  disabled={disabled} // Disable file selection during loading
+                  className={`w-full text-left px-3 py-2 bg-white rounded-md hover:bg-blue-50 transition ${
+                    disabled ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
                   📄 {item.name}
                 </button>
