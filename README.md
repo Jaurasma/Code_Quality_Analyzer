@@ -44,7 +44,7 @@ Ensure you have the following installed on your machine:
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/Jaurasma/strive_tech_challenge.git code_quality_analyzer
+   git clone https://github.com/Jaurasma/Code_Quality_Analyzer.git code_quality_analyzer
    cd code_quality_analyzer
    ```
 
@@ -200,9 +200,8 @@ While **Code Quality Analyzer** is functional and robust, there are several area
   - **Unit Testing:** Implement comprehensive unit tests using [Jest](https://jestjs.io/) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to ensure component reliability and facilitate maintainability.
   - **Integration Testing:** Develop integration tests to validate the interaction between different parts of the application, ensuring seamless data flow and functionality.
 
-- **Docker Enhancements:**
-  - **Optimized Dockerfile:** Refine the existing `Dockerfile` to leverage multi-stage builds, reducing the final image size and improving build times.
-  - **Docker Compose:** Introduce a `docker-compose.yml` file to manage multi-container setups, facilitating easier local development and testing environments.
+- **Docker Implementaion:**
+  - **Dockerfile:** Dockerize the project to ensure that it runs on all machines.
 
 - **Enhanced Error Handling and Logging:**
   - **User Feedback:** Improve error messages and user notifications to provide clearer guidance during failures.
