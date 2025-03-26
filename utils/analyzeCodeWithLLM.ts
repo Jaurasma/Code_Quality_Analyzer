@@ -1,5 +1,3 @@
-// utils/analyzeCodeWithLLM.ts
-
 import axios, { AxiosResponse } from "axios";
 import pRetry, { AbortError } from "p-retry";
 
@@ -50,29 +48,54 @@ const analyzeCodeWithLLM = async (code: string): Promise<AnalyzeResponse> => {
   const messages: OpenAIMessage[] = [
     {
       role: "system",
-      content:
-        'You are a code quality analysis assistant. Provide a score out of 0 to 100 and detailed reasoning. Your reasoning should include Markdown formatting such as headings, bullet points, and code blocks to enhance readability. Respond strictly in JSON format with the following structure:\n\n{\n  "score": <number>,\n  "reasoning": "<string with Markdown formatting and escaped quotes>"\n}\n\n**Example Reasoning:**\n\n```\n# Analysis Report\n\n## Strengths\n- Well-structured codebase\n- Comprehensive test coverage\n\n## Areas for Improvement\n1. Optimize the sorting algorithm in `utils.js`\n2. Refactor repetitive code blocks in `component.jsx`\n\n**Conclusion:** The code quality is solid but can benefit from targeted optimizations.\n```',
+      content: `You are a highly critical code quality analysis assistant. Your task is to evaluate a given piece of code based on its correctness, readability, maintainability, performance, scalability, and adherence to best practices. **Correctness is the most important criterion.** If the code contains syntax errors, fails to compile, or does not run as expected, you must give it a score below 50 regardless of other aspects.
+
+Use the following scoring system:
+
+- **90-100:** Exceptional quality with excellent coding practices and flawless functionality.
+- **70-89:** Good quality with minor issues; code works as intended.
+- **50-69:** Average quality; the code has several issues or inconsistencies.
+- **Below 50:** Poor quality; the code is buggy, non-functional, or critically flawed.
+
+Provide a detailed analysis including:
+- **Correctness:** Does the code run? Are there any bugs?
+- **Strengths:** What the code does well.
+- **Weaknesses:** Issues in logic, performance, maintainability, or other flaws.
+- **Suggestions:** Specific recommendations for improvement.
+
+Format your analysis using Markdown with headings, bullet points, and code blocks where appropriate.
+
+Respond strictly in JSON format with the following structure:
+{
+  "score": <number>,
+  "reasoning": "<string with Markdown formatting and escaped quotes>"
+}
+
+**Example Response:**  
+\`\`\`
+{
+  "score": 42,
+  "reasoning": "# Code Quality Analysis\\n\\n## Correctness\\n- The code fails to compile due to a missing semicolon.\\n\\n## Strengths\\n- The overall structure is clear.\\n\\n## Weaknesses\\n- Critical syntax errors prevent execution.\\n- Lacks proper error handling.\\n\\n## Suggestions\\n- Fix the syntax errors and add proper validation.\\n\\n**Conclusion:** The code is fundamentally broken and requires significant revisions."
+}
+`,
     },
     {
       role: "user",
-      content: `Please explain quickly what the code does and analyze the quality of the code in the following file. You can provide code blocks or other Markdown elements to illustrate your points:
+      content: `Analyze the following code and provide your detailed assessment in the JSON format specified above:
 
 \`\`\`
 ${code}
-\`\`\`
-
-Provide your analysis in the specified JSON format.`,
+\`\`\``,
     },
   ];
 
   const MAX_RETRIES = 3; // Maximum retry attempts
 
-  // OpenAI api call, can be modified to be more powerfull with model & tokens
   const fetchAnalysis = async (): Promise<AnalyzeResponse> => {
     const response: AxiosResponse<OpenAIResponse> = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
-        model: "gpt-4o-mini",
+        model: "gpt-4o-mini", // Consider switching to a higher-capacity model if available
         messages: messages,
         max_tokens: 2024,
         temperature: 0.3,
@@ -89,9 +112,33 @@ Provide your analysis in the specified JSON format.`,
     );
 
     const assistantMessage = response.data.choices[0].message.content.trim();
-    const parsedResponse = JSON.parse(assistantMessage);
 
-    // Validate the parsed response
+    // Attempt to remove Markdown code block formatting if present
+    let cleanedMessage = assistantMessage;
+    if (cleanedMessage.startsWith("```")) {
+      const lines = cleanedMessage.split("\n");
+      // Remove the first and last lines if they are code block markers
+      if (lines.length >= 3 && lines[0].startsWith("```")) {
+        lines.shift();
+        if (lines[lines.length - 1].startsWith("```")) {
+          lines.pop();
+        }
+        cleanedMessage = lines.join("\n").trim();
+      }
+    }
+
+    let parsedResponse: any;
+    try {
+      parsedResponse = JSON.parse(cleanedMessage);
+    } catch (parseError) {
+      // Log the raw response and return it in the reasoning field with a score of 0
+      console.error("Failed to parse JSON. Raw response:", assistantMessage);
+      return {
+        score: 0,
+        reasoning: `**Raw response from LLM:**\n\n${assistantMessage}`,
+      };
+    }
+
     if (
       typeof parsedResponse.score !== "number" ||
       typeof parsedResponse.reasoning !== "string"
@@ -113,17 +160,14 @@ Provide your analysis in the specified JSON format.`,
           `Attempt ${error.attemptNumber} failed. There are ${error.retriesLeft} retries left.`
         );
       },
-      // Retry on all errors except AbortError
-      shouldRetry: (error) => {
-        return !(error instanceof AbortError);
-      },
+      shouldRetry: (error) => !(error instanceof AbortError),
     });
 
     return analysis;
   } catch (error: any) {
     console.error("LLM Analysis Failed:", error.message);
     throw new Error(
-      "Analyzing code quality using AI is tricky buisness please try again."
+      "Analyzing code quality using AI is tricky business. Please try again."
     );
   }
 };

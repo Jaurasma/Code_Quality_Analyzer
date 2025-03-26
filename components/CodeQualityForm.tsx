@@ -305,6 +305,7 @@ const CodeQualityForm = () => {
         {/* FilePicker Component to select files from the repository */}
         {activeRepo && (
           <FilePicker
+            key={activeRepo} // This forces a remount when activeRepo changes
             repo={activeRepo}
             onFileSelect={handleFileSelect}
             disabled={loading}
