@@ -18,7 +18,7 @@
 
 ## Introduction
 
-**Code Quality Analyzer** is a Next.js application designed to evaluate the quality of code snippets from GitHub repositories. By leveraging GitHub's API to fetch specific files and OpenAI's powerful language models, this tool provides users with a comprehensive analysis, including a quality score and detailed reasoning. This helps developers maintain high coding standards and identify areas for improvement within their codebases.
+**Code Quality Analyzer** is a Next.js application designed to evaluate the quality of code snippets from GitHub repositories. By leveraging GitHub's API to fetch specific files and OpenAI's powerful language models, this tool provides users with a comprehensive analysis, including a quality score and detailed reasoning. This helps developers maintain high coding standards and identify areas for improvement within their codebases. Feel free to go test the product at [Code Quality Analyzer](https://code-quality-analyzer.vercel.app/)
 
 ## Features
 
