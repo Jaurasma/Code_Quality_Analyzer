@@ -68,8 +68,8 @@ Create a `.env.local` file in the root directory of the project and add the foll
 
 ```env
 # GitHub OAuth Credentials
-GITHUB_ID=your-github-client-id
-GITHUB_SECRET=your-github-client-secret
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
 
 # NextAuth Secret
 NEXTAUTH_SECRET=your-nextauth-secret
