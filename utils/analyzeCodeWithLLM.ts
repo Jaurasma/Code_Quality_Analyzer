@@ -38,9 +38,11 @@ interface OpenAIResponse {
  * @param code - The code snippet to analyze.
  * @returns An object containing the quality score and reasoning.
  */
-const analyzeCodeWithLLM = async (code: string): Promise<AnalyzeResponse> => {
+const analyzeCodeWithLLM = async (
+  code: string,
+  extraQuestion?: string
+): Promise<AnalyzeResponse> => {
   const openaiApiKey = process.env.OPENAI_API_KEY;
-
   if (!openaiApiKey) {
     throw new Error("OpenAI API key is not set");
   }
@@ -74,7 +76,7 @@ Respond strictly in JSON format with the following structure:
 **Example Response:**  
 \`\`\`
 {
-  "score": 42,
+  "score": 42
   "reasoning": "# Code Quality Analysis\\n\\n## Correctness\\n- The code fails to compile due to a missing semicolon.\\n\\n## Strengths\\n- The overall structure is clear.\\n\\n## Weaknesses\\n- Critical syntax errors prevent execution.\\n- Lacks proper error handling.\\n\\n## Suggestions\\n- Fix the syntax errors and add proper validation.\\n\\n**Conclusion:** The code is fundamentally broken and requires significant revisions."
 }
 `,
@@ -88,6 +90,14 @@ ${code}
 \`\`\``,
     },
   ];
+  if (extraQuestion && extraQuestion.trim() !== "") {
+    console.log(extraQuestion);
+    messages.push({
+      role: "user",
+      content: extraQuestion,
+    });
+    console.log(messages);
+  }
 
   const MAX_RETRIES = 3; // Maximum retry attempts
 
